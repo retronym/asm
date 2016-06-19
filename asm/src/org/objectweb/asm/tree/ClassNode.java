@@ -38,6 +38,7 @@ import org.objectweb.asm.Attribute;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.ModuleVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.TypePath;
 
@@ -97,6 +98,11 @@ public class ClassNode extends ClassVisitor {
      */
     public String sourceDebug;
 
+    /**
+     * Module information. May be <tt>null</tt>.
+     */
+    public ModuleNode module;
+    
     /**
      * The internal name of the enclosing class of the class. May be
      * <tt>null</tt>.
@@ -192,7 +198,7 @@ public class ClassNode extends ClassVisitor {
      *             If a subclass calls this constructor.
      */
     public ClassNode() {
-        this(Opcodes.ASM5);
+        this(Opcodes.ASM6);
         if (getClass() != ClassNode.class) {
             throw new IllegalStateException();
         }
@@ -203,7 +209,7 @@ public class ClassNode extends ClassVisitor {
      * 
      * @param api
      *            the ASM API version implemented by this visitor. Must be one
-     *            of {@link Opcodes#ASM4} or {@link Opcodes#ASM5}.
+     *            of {@link Opcodes#ASM4}, {@link Opcodes#ASM5} or {@link Opcodes#ASM6}.
      */
     public ClassNode(final int api) {
         super(api);
@@ -235,6 +241,11 @@ public class ClassNode extends ClassVisitor {
     public void visitSource(final String file, final String debug) {
         sourceFile = file;
         sourceDebug = debug;
+    }
+    
+    @Override
+    public ModuleVisitor visitModule() {
+        return module = new ModuleNode(); 
     }
 
     @Override
@@ -329,8 +340,8 @@ public class ClassNode extends ClassVisitor {
      * API than the given version.
      * 
      * @param api
-     *            an ASM API version. Must be one of {@link Opcodes#ASM4} or
-     *            {@link Opcodes#ASM5}.
+     *            an ASM API version. Must be one of {@link Opcodes#ASM4},
+     *            {@link Opcodes#ASM5} or {@link Opcodes#ASM6}.
      */
     public void check(final int api) {
         if (api == Opcodes.ASM4) {

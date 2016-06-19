@@ -117,7 +117,7 @@ public abstract class Printer {
 
     /**
      * The ASM API version implemented by this class. The value of this field
-     * must be one of {@link Opcodes#ASM4} or {@link Opcodes#ASM5}.
+     * must be one of {@link Opcodes#ASM4}, {@link Opcodes#ASM5} or {@link Opcodes#ASM6}.
      */
     protected final int api;
 
@@ -145,7 +145,7 @@ public abstract class Printer {
      *
      * @param api
      *            the ASM API version implemented by this printer. Must be one
-     *            of {@link Opcodes#ASM4} or {@link Opcodes#ASM5}.
+     *            of {@link Opcodes#ASM4}, {@link Opcodes#ASM5} or {@link Opcodes#ASM6}.
      */
     protected Printer(final int api) {
         this.api = api;
@@ -197,6 +197,11 @@ public abstract class Printer {
      */
     public abstract void visitSource(final String source, final String debug);
 
+    
+    public Printer visitModule() {
+        throw new RuntimeException("Must be overriden");
+    }
+    
     /**
      * Class outer class.
      * See {@link org.objectweb.asm.ClassVisitor#visitOuterClass}.
@@ -346,6 +351,33 @@ public abstract class Printer {
      */
     public abstract void visitClassEnd();
 
+    // ------------------------------------------------------------------------
+    // Module
+    // ------------------------------------------------------------------------
+    
+    public void visitRequire(String module, int access) {
+        throw new RuntimeException("Must be overriden");
+    }
+    
+    public void visitExport(String packaze, String... modules) {
+        throw new RuntimeException("Must be overriden");
+    }
+    
+    public void visitUse(String service) {
+        throw new RuntimeException("Must be overriden");
+    }
+    
+    public void visitProvide(String service, String impl) {
+        throw new RuntimeException("Must be overriden");
+    }
+    
+    /**
+     * Module end. See {@link org.objectweb.asm.ModuleVisitor#visitEnd}.
+     */
+    public void visitModuleEnd() {
+        throw new RuntimeException("Must be overriden");
+    }
+    
     // ------------------------------------------------------------------------
     // Annotations
     // ------------------------------------------------------------------------
