@@ -352,7 +352,8 @@ public class Type {
     }
     Type type = getPrimitiveType(methodDescriptor.charAt(currentOffset + 1));
     if (type != null) return type;
-    return getNonPrimitiveType(valueBuffer, currentOffset + 1, valueBuffer.length - currentOffset - 1);
+    return getNonPrimitiveType(
+        valueBuffer, currentOffset + 1, valueBuffer.length - currentOffset - 1);
   }
 
   /**
@@ -391,7 +392,8 @@ public class Type {
     return getArgumentsAndReturnCountOrSize(methodDescriptor, true);
   }
 
-  private static int getArgumentsAndReturnCountOrSize(final String methodDescriptor, final boolean countOnly) {
+  private static int getArgumentsAndReturnCountOrSize(
+      final String methodDescriptor, final boolean countOnly) {
     int argumentsSize = 1;
     // Skip the first character, which is always a '('.
     int currentOffset = 1;
@@ -440,7 +442,8 @@ public class Type {
   }
 
   /**
-   * Returns the {@link Type} corresponding to the given descriptor if it is a primitive descriptor, or null otherwise
+   * Returns the {@link Type} corresponding to the given descriptor if it is a primitive descriptor,
+   * or null otherwise
    *
    * @param primitiveDescriptor The descriptor
    * @return the {@link Type} corresponding to the given type descriptor, or null otherwise
@@ -466,12 +469,13 @@ public class Type {
       case 'D':
         return DOUBLE_TYPE;
       default:
-          return null;
+        return null;
     }
   }
 
   /**
-   * Returns the {@link Type} corresponding to the given field or method descriptor, assuming it is non-primitive
+   * Returns the {@link Type} corresponding to the given field or method descriptor, assuming it is
+   * non-primitive
    *
    * @param descriptorBuffer a buffer containing the field or method descriptor.
    * @param descriptorOffset the offset of the field or method descriptor in descriptorBuffer.
