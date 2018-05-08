@@ -340,17 +340,19 @@ public class Type {
     // Skip the first character, which is always a '('.
     int currentOffset = 1;
     // Skip the argument types, one at a each loop iteration.
-    while (valueBuffer[currentOffset] != ')') {
-      while (valueBuffer[currentOffset] == '[') {
+    while (methodDescriptor.charAt(currentOffset) != ')') {
+      while (methodDescriptor.charAt(currentOffset) == '[') {
         currentOffset++;
       }
-      if (valueBuffer[currentOffset++] == 'L') {
-        while (valueBuffer[currentOffset++] != ';') {
+      if (methodDescriptor.charAt(currentOffset++) == 'L') {
+        while (methodDescriptor.charAt(currentOffset++) != ';') {
           // Skip the argument descriptor content.
         }
       }
     }
-    return getType(valueBuffer, currentOffset + 1, valueBuffer.length - currentOffset - 1);
+    Type type = getPrimitiveType(methodDescriptor.charAt(currentOffset + 1));
+    if (type != null) return type;
+    return getNonPrimitiveType(valueBuffer, currentOffset + 1, valueBuffer.length - currentOffset - 1);
   }
 
   /**
@@ -432,7 +434,19 @@ public class Type {
    */
   private static Type getType(
       final char[] descriptorBuffer, final int descriptorOffset, final int descriptorLength) {
-    switch (descriptorBuffer[descriptorOffset]) {
+    final Type type = getPrimitiveType(descriptorBuffer[descriptorOffset]);
+    if (type != null) return type;
+    return getNonPrimitiveType(descriptorBuffer, descriptorOffset, descriptorLength);
+  }
+
+  /**
+   * Returns the {@link Type} corresponding to the given descriptor if it is a primitive descriptor, or null otherwise
+   *
+   * @param primitiveDescriptor The descriptor
+   * @return the {@link Type} corresponding to the given type descriptor, or null otherwise
+   */
+  private static Type getPrimitiveType(final char primitiveDescriptor) {
+    switch (primitiveDescriptor) {
       case 'V':
         return VOID_TYPE;
       case 'Z':
@@ -451,6 +465,22 @@ public class Type {
         return LONG_TYPE;
       case 'D':
         return DOUBLE_TYPE;
+      default:
+          return null;
+    }
+  }
+
+  /**
+   * Returns the {@link Type} corresponding to the given field or method descriptor, assuming it is non-primitive
+   *
+   * @param descriptorBuffer a buffer containing the field or method descriptor.
+   * @param descriptorOffset the offset of the field or method descriptor in descriptorBuffer.
+   * @param descriptorLength the length of the field or method descriptor.
+   * @return the {@link Type} corresponding to the given type descriptor.
+   */
+  private static Type getNonPrimitiveType(
+      final char[] descriptorBuffer, final int descriptorOffset, final int descriptorLength) {
+    switch (descriptorBuffer[descriptorOffset]) {
       case '[':
         return new Type(ARRAY, descriptorBuffer, descriptorOffset, descriptorLength);
       case 'L':
