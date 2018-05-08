@@ -373,15 +373,33 @@ public class Type {
    *     &gt;&gt; 2</tt>, and returnSize to <tt>i &amp; 0x03</tt>).
    */
   public static int getArgumentsAndReturnSizes(final String methodDescriptor) {
+    return getArgumentsAndReturnCountOrSize(methodDescriptor, false);
+  }
+
+  /**
+   * Computes the count of the arguments and of the "count" of return values of a method.
+   *
+   * @param methodDescriptor a method descriptor.
+   * @return the count of the arguments of the method (plus one for the implicit this argument),
+   *     argumentsSize, and the size of its return value, returnSize, packed into a single int i =
+   *     <tt>(argumentsSize &lt;&lt; 2) | returnSize</tt> (argumentsSize is therefore equal to <tt>i
+   *     &gt;&gt; 2</tt>, and returnSize to <tt>i &amp; 0x03</tt>).
+   */
+  public static int getArgumentsAndReturnCount(final String methodDescriptor) {
+    return getArgumentsAndReturnCountOrSize(methodDescriptor, true);
+  }
+
+  private static int getArgumentsAndReturnCountOrSize(final String methodDescriptor, final boolean countOnly) {
     int argumentsSize = 1;
     // Skip the first character, which is always a '('.
     int currentOffset = 1;
     int currentChar = methodDescriptor.charAt(currentOffset);
+    int longSize = countOnly ? 1 : 2;
     // Parse the argument types and compute their size, one at a each loop iteration.
     while (currentChar != ')') {
       if (currentChar == 'J' || currentChar == 'D') {
         currentOffset++;
-        argumentsSize += 2;
+        argumentsSize += longSize;
       } else {
         while (methodDescriptor.charAt(currentOffset) == '[') {
           currentOffset++;
@@ -399,43 +417,8 @@ public class Type {
     if (currentChar == 'V') {
       return argumentsSize << 2;
     } else {
-      int returnSize = (currentChar == 'J' || currentChar == 'D') ? 2 : 1;
+      int returnSize = (currentChar == 'J' || currentChar == 'D') ? longSize : 1;
       return argumentsSize << 2 | returnSize;
-    }
-  }
-
-  /**
-   * Computes the count of the arguments and of the "count" of return values of a method.
-   *
-   * @param methodDescriptor a method descriptor.
-   * @return the count of the arguments of the method (plus one for the implicit this argument),
-   *     argumentsSize, and the size of its return value, returnSize, packed into a single int i =
-   *     <tt>(argumentsSize &lt;&lt; 2) | returnSize</tt> (argumentsSize is therefore equal to <tt>i
-   *     &gt;&gt; 2</tt>, and returnSize to <tt>i &amp; 0x03</tt>).
-   */
-  public static int getArgumentsAndReturnCount(final String methodDescriptor) {
-    int argumentsCount = 1;
-    // Skip the first character, which is always a '('.
-    int currentOffset = 1;
-    int currentChar = methodDescriptor.charAt(currentOffset);
-    // Parse the argument types and compute their size, one at a each loop iteration.
-    while (currentChar != ')') {
-      while (methodDescriptor.charAt(currentOffset) == '[') {
-        currentOffset++;
-      }
-      if (methodDescriptor.charAt(currentOffset++) == 'L') {
-        while (methodDescriptor.charAt(currentOffset++) != ';') {
-          // Skip the argument descriptor content.
-        }
-      }
-      argumentsCount += 1;
-      currentChar = methodDescriptor.charAt(currentOffset);
-    }
-    currentChar = methodDescriptor.charAt(currentOffset + 1);
-    if (currentChar == 'V') {
-      return argumentsCount << 2;
-    } else {
-      return argumentsCount << 2 | 1;
     }
   }
 
