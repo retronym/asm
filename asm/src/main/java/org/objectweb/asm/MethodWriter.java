@@ -687,16 +687,17 @@ final class MethodWriter extends MethodVisitor {
     annotation.putShort(symbolTable.addConstantUtf8(annotationDescriptor)).putShort(0);
     if (visible) {
       if (lastRuntimeVisibleParameterAnnotations == null) {
+        final int argumentCount = Type.getArgumentsAndReturnCount(descriptor) >> 2 - 1;
         lastRuntimeVisibleParameterAnnotations =
-            new AnnotationWriter[Type.getArgumentTypes(descriptor).length];
+            new AnnotationWriter[argumentCount];
       }
       return lastRuntimeVisibleParameterAnnotations[parameter] =
           new AnnotationWriter(
               symbolTable, annotation, lastRuntimeVisibleParameterAnnotations[parameter]);
     } else {
       if (lastRuntimeInvisibleParameterAnnotations == null) {
-        lastRuntimeInvisibleParameterAnnotations =
-            new AnnotationWriter[Type.getArgumentTypes(descriptor).length];
+        final int argumentCount = Type.getArgumentsAndReturnCount(descriptor) >> 2 - 1;
+        lastRuntimeInvisibleParameterAnnotations = new AnnotationWriter[argumentCount];
       }
       return lastRuntimeInvisibleParameterAnnotations[parameter] =
           new AnnotationWriter(
