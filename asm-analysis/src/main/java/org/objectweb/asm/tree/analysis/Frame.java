@@ -570,13 +570,16 @@ public class Frame<V extends Value> {
         {
           List<V> valueList = new ArrayList<V>();
           String methodDescriptor = ((MethodInsnNode) insn).desc;
-          for (int i = Type.getArgumentTypes(methodDescriptor).length; i > 0; --i) {
+          final int info = Type.getArgumentsAndReturnCount(methodDescriptor);
+          final int argumentCount = (info >> 2) - 1;
+          final boolean isVoid = (info & 3) == 0;
+          for (int i = argumentCount; i > 0; --i) {
             valueList.add(0, pop());
           }
           if (insn.getOpcode() != Opcodes.INVOKESTATIC) {
             valueList.add(0, pop());
           }
-          if (Type.getReturnType(methodDescriptor) == Type.VOID_TYPE) {
+          if (isVoid) {
             interpreter.naryOperation(insn, valueList);
           } else {
             push(interpreter.naryOperation(insn, valueList));
@@ -586,11 +589,14 @@ public class Frame<V extends Value> {
       case Opcodes.INVOKEDYNAMIC:
         {
           List<V> valueList = new ArrayList<V>();
-          String methodDesccriptor = ((InvokeDynamicInsnNode) insn).desc;
-          for (int i = Type.getArgumentTypes(methodDesccriptor).length; i > 0; --i) {
+          String methodDescriptor = ((InvokeDynamicInsnNode) insn).desc;
+          final int info = Type.getArgumentsAndReturnCount(methodDescriptor);
+          final int argumentCount = (info >> 2) - 1;
+          final boolean isVoid = (info & 3) == 0;
+          for (int i = argumentCount; i > 0; --i) {
             valueList.add(0, pop());
           }
-          if (Type.getReturnType(methodDesccriptor) == Type.VOID_TYPE) {
+          if (isVoid) {
             interpreter.naryOperation(insn, valueList);
           } else {
             push(interpreter.naryOperation(insn, valueList));
