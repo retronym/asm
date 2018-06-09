@@ -33,6 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.objectweb.asm.test.Assertions.assertThat;
 
 import java.util.ListIterator;
 import java.util.NoSuchElementException;
@@ -746,6 +747,15 @@ public class InsnListTest {
     list1.resetLabels();
 
     assertNotSame(label, labelNode.getLabel());
+  }
+
+  @Test
+  public void testAddNodeAssociatedWithAnotherList() {
+    LabelNode labelNode = new LabelNode();
+
+    InsnNode node = new InsnNode(55);
+    list1.add(node);
+    assertThrows(IllegalArgumentException.class, () -> list2.add(node));
   }
 
   /** An InsnList which checks that its methods are properly used. */
