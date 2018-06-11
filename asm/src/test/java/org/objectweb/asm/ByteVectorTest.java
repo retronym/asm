@@ -31,11 +31,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.Arrays;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-
-import java.util.Arrays;
 
 /**
  * ByteVector tests.
@@ -129,7 +128,8 @@ public class ByteVectorTest {
     Arrays.fill(charBuffer, 'A');
     String s = new String(charBuffer);
     if (size > 65535) {
-      IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class, () -> byteVector.putUTF8(s));
+      IllegalArgumentException thrown =
+          assertThrows(IllegalArgumentException.class, () -> byteVector.putUTF8(s));
       assertEquals("Maximum size for a UTF-8 string constant exceeded", thrown.getMessage());
     } else {
       byteVector.putUTF8(s);
