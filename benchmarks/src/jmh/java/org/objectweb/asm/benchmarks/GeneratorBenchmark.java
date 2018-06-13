@@ -115,6 +115,12 @@ public class GeneratorBenchmark extends AbstractBenchmark {
   }
 
   @Benchmark
+  public byte[] asm6_1_reuse() {
+    asm6_1.enableClassWriterReuse();
+    return asm6_1.generateClass();
+  }
+
+  @Benchmark
   public byte[] aspectJBcel() {
     return aspectJBcel.generateClass();
   }

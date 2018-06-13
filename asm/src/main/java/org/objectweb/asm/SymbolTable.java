@@ -27,6 +27,8 @@
 // THE POSSIBILITY OF SUCH DAMAGE.
 package org.objectweb.asm;
 
+import java.util.Arrays;
+
 /**
  * The constant pool entries, the BootstrapMethods attribute entries and the (ASM specific) type
  * table entries of a class.
@@ -1209,6 +1211,27 @@ final class SymbolTable {
     int commonSuperTypeIndex = addType(classWriter.getCommonSuperClass(type1, type2));
     put(new Entry(typeCount, Symbol.MERGED_TYPE_TAG, data, hashCode)).info = commonSuperTypeIndex;
     return commonSuperTypeIndex;
+  }
+
+  void clear() {
+    majorVersion = 0;
+    className = null;
+    entryCount = 0;
+    fillNull(entries);
+    constantPoolCount = 1;
+    clear(constantPool);
+    bootstrapMethodCount = 0;
+    clear(bootstrapMethods);
+    typeCount = 0;
+    fillNull(typeTable);
+  }
+
+  private static void clear(ByteVector buf) {
+    if (buf != null) buf.clear();
+  }
+
+  private static void fillNull(Object[] array) {
+    if (array != null) Arrays.fill(array, null);
   }
 
   /**

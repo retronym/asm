@@ -55,8 +55,8 @@ public class ClassWriterTest extends AsmTest {
   /**
    * Tests that the non-static fields of ClassWriter are the expected ones. This test is designed to
    * fail each time new fields are added to ClassWriter, and serves as a reminder to update the
-   * field reset logic in {@link ClassWriter#replaceAsmInstructions()}, if needed, each time a new
-   * field is added.
+   * field reset logic in {@link ClassWriter#replaceAsmInstructions(ByteVector, boolean)}, if
+   * needed, each time a new field is added.
    */
   @Test
   public void testInstanceFields() {
@@ -64,6 +64,9 @@ public class ClassWriterTest extends AsmTest {
     // ClassWriter fields in ClassWriter.toByteArray(), if needed (this logic is used to do a
     // ClassReader->ClassWriter round trip to remove the ASM specific instructions due to large
     // forward jumps).
+    //
+    // The logic in ClassWriter.clear() must also be reviewed and updated in needed (to support
+    // reuse of ClassWriters)
     assertEquals(
         new HashSet<String>(
             Arrays.asList(
@@ -94,7 +97,9 @@ public class ClassWriterTest extends AsmTest {
                 "numberOfNestMemberClasses",
                 "nestMemberClasses",
                 "firstAttribute",
-                "compute")),
+                "compute",
+                "classWriterBuffer1",
+                "classWriterBuffer2")),
         Arrays.stream(ClassWriter.class.getDeclaredFields())
             .filter(field -> !Modifier.isStatic(field.getModifiers()))
             .map(Field::getName)
@@ -488,6 +493,64 @@ public class ClassWriterTest extends AsmTest {
         .isEqualTo(originalClassWithoutCode.toByteArray());
   }
 
+  /**
+   * Tests that reusing a <tt>ClassWriter</tt> by using {@link ClassWriter#clear()}, and/or {@link
+   * ClassWriter#useClassWriterBuffer(int)} result in identical results as a freshly created
+   * <tt>ClassWriter</tt>.
+   *
+   * <p>Like {@link #testReadAndWriteWithResizeMethod}, inserts NOPs to require <tt>ClassWriter</tt>
+   * to perform the second pass transform in {@link ClassWriter#replaceAsmInstructions(ByteVector,
+   * boolean)}.
+   */
+  @ParameterizedTest
+  @MethodSource(ALL_CLASSES_AND_ALL_APIS)
+  public void testClassWriterReuse(final PrecompiledClass classParameter, final Api apiParameter) {
+    byte[] classFile = classParameter.getBytes();
+    if (classFile.length > Short.MAX_VALUE) return;
+
+    testClasswriterReuseImpl(classParameter, apiParameter, classFile, -1);
+    testClasswriterReuseImpl(classParameter, apiParameter, classFile, 4096);
+  }
+
+  private void testClasswriterReuseImpl(
+      PrecompiledClass classParameter, Api apiParameter, byte[] classFile, int reusableBufferSize) {
+    ClassReader classReader = new ClassReader(classFile);
+    ClassWriter classWriter = new ClassWriterBufferReuse(reusableBufferSize);
+
+    // Insert ASM instructions to exercise `ClassWriter.replaceAsmInstructions`
+    ForwardJumpNopInserter forwardJumpNopInserter =
+        new ForwardJumpNopInserter(apiParameter.value(), classWriter);
+
+    if (classParameter.isMoreRecentThan(apiParameter)) {
+      assertThrows(
+          RuntimeException.class,
+          () -> classReader.accept(forwardJumpNopInserter, attributes(), 0));
+      return;
+    }
+    classReader.accept(forwardJumpNopInserter, attributes(), 0);
+    ClassWriter referenceClassWriter = new ClassWriter(0);
+    classWriter = new ClassWriterBufferReuse(reusableBufferSize);
+    if (!forwardJumpNopInserter.transformed) {
+      classReader.accept(
+          new WideForwardJumpInserter(apiParameter.value(), referenceClassWriter), attributes(), 0);
+      classReader.accept(
+          new WideForwardJumpInserter(apiParameter.value(), classWriter), attributes(), 0);
+      assertThatClass(referenceClassWriter.toByteArray()).isEqualTo(classWriter.toByteArray());
+      classWriter.clear();
+      classReader.accept(
+          new WideForwardJumpInserter(apiParameter.value(), classWriter), attributes(), 0);
+      assertThatClass(referenceClassWriter.toByteArray()).isEqualTo(classWriter.toByteArray());
+    } else {
+      classReader.accept(classWriter, attributes(), 0);
+      classReader.accept(referenceClassWriter, attributes(), 0);
+      assertThatClass(referenceClassWriter.toByteArray()).isEqualTo(classWriter.toByteArray());
+      classWriter.clear();
+      classReader.accept(classWriter, attributes(), 0);
+      byte[] transformedClassAgain = classWriter.toByteArray();
+      assertThatClass(referenceClassWriter.toByteArray()).isEqualTo(transformedClassAgain);
+    }
+  }
+
   /** Tests modules without any optional data (ModulePackage, ModuleMainClass, etc). */
   @Test
   public void testReadAndWriteWithBasicModule() {
@@ -809,6 +872,15 @@ public class ClassWriterTest extends AsmTest {
     @Override
     protected String getCommonSuperClass(final String type1, final String type2) {
       throw new UnsupportedOperationException();
+    }
+  }
+
+  /** A ClassWriter that can configure reuse of internal buffers. */
+  private static class ClassWriterBufferReuse extends ClassWriter {
+
+    public ClassWriterBufferReuse(final int reuseBufferSize) {
+      super(0);
+      if (reuseBufferSize > 0) useClassWriterBuffer(reuseBufferSize);
     }
   }
 }

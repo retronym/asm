@@ -27,6 +27,7 @@
 // THE POSSIBILITY OF SUCH DAMAGE.
 package org.objectweb.asm.benchmarks;
 
+import org.objectweb.asm.ByteVector;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -52,9 +53,20 @@ public class ASMGenerator extends Generator {
     return "";
   }
 
+  private ClassWriter classWriter = null;
+
+  private ClassWriter getClassWriter() {
+    if (classWriter == null) {
+      return new ClassWriter(ClassWriter.COMPUTE_MAXS);
+    } else {
+      classWriter.clear();
+      return classWriter;
+    }
+  }
+
   @Override
   public byte[] generateClass() {
-    ClassWriter classWriter = new ClassWriter(ClassWriter.COMPUTE_MAXS);
+    ClassWriter classWriter = getClassWriter();
 
     classWriter.visit(
         Opcodes.V1_1, Opcodes.ACC_PUBLIC, "HelloWorld", null, "java/lang/Object", null);
@@ -80,6 +92,29 @@ public class ASMGenerator extends Generator {
     methodVisitor.visitMaxs(0, 0);
     methodVisitor.visitEnd();
 
-    return classWriter.toByteArray();
+    if (this.classWriter == null) {
+      return classWriter.toByteArray();
+    } else {
+      // TODO generalize `generateClass` to return a `ByteVector`. That would require updates to the
+      // facades over other bytecode libraries.
+      // For now, we just cheat be by calling `toByteVector` and returning a null array.
+      ByteVector byteVector = classWriter.toByteVector();
+      if (byteVector.toByteBuffer().remaining() == 0) {
+        throw new AssertionError();
+      }
+      return null;
+    }
+  }
+
+  @Override
+  public void enableClassWriterReuse() {
+    if (classWriter == null) {
+      classWriter =
+          new ClassWriter(ClassWriter.COMPUTE_MAXS) {
+            {
+              useClassWriterBuffer(512);
+            }
+          };
+    }
   }
 }

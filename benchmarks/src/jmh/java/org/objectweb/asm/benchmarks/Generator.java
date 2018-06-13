@@ -45,4 +45,6 @@ public abstract class Generator {
    * @return the JVMS ClassFile structure of the generated class.
    */
   public abstract byte[] generateClass();
+
+  public void enableClassWriterReuse() {}
 }

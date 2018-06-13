@@ -27,6 +27,10 @@
 // THE POSSIBILITY OF SUCH DAMAGE.
 package org.objectweb.asm;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.nio.ByteBuffer;
+
 /**
  * A dynamically extensible vector of bytes. This class is roughly equivalent to a DataOutputStream
  * on top of a ByteArrayOutputStream, but is more efficient.
@@ -345,6 +349,38 @@ public class ByteVector {
     return this;
   }
 
+  /** Resets the length of to zero while retaining the internal <tt>byte[]</tt>. */
+  public void clear() {
+    length = 0;
+  }
+
+  /**
+   * Creates an {@link java.io.InputStream} over the contents of this <code>ByteVector</code>
+   *
+   * @return An <tt>InputStream</tt> over the contents.
+   */
+  public InputStream newInputStream() {
+    return new ByteArrayInputStream(data, 0, length);
+  }
+
+  /**
+   * Creates a read-only {@link java.nio.ByteBuffer} over the contents of this <code>ByteVector
+   * </code>
+   *
+   * @return A <tt>ByteBuffer</tt> over the contents.
+   */
+  public ByteBuffer toByteBuffer() {
+    return ByteBuffer.wrap(data, 0, length).asReadOnlyBuffer();
+  }
+
+  /**
+   * Increase the size of the internal buffer to at least `capacity` bytes.
+   *
+   * @param capacity The minimum capacity of the internal buffer after this operation.
+   */
+  public void ensureCapacity(int capacity) {
+    if (data.length < capacity) enlarge(capacity - data.length);
+  }
   /**
    * Enlarges this byte vector so that it can receive 'size' more bytes.
    *
