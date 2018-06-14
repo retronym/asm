@@ -976,8 +976,8 @@ public class ClassWriter extends ClassVisitor {
 
   /** Clear this <tt>ClassWriter</tt> in preparation to visit and write a new class. */
   public void clear() {
-    version = 0;
     symbolTable.clear();
+    version = 0;
     accessFlags = 0;
     thisClass = 0;
     superClass = 0;

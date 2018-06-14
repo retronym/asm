@@ -551,6 +551,12 @@ public class ClassWriterTest extends AsmTest {
     }
   }
 
+  @Test
+  public void testClassWriterReuseUnsupported() {
+    ClassReader reader = new ClassReader(PrecompiledClass.JDK8_ALL_STRUCTURES.getBytes());
+    assertThrows(UnsupportedOperationException.class, () -> new ClassWriter(reader, 0).clear());
+  }
+
   /** Tests modules without any optional data (ModulePackage, ModuleMainClass, etc). */
   @Test
   public void testReadAndWriteWithBasicModule() {

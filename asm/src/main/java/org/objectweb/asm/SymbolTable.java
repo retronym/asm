@@ -1214,6 +1214,10 @@ final class SymbolTable {
   }
 
   void clear() {
+    if (sourceClassReader != null) {
+      throw new UnsupportedOperationException(
+          "ClassWriter constructed based on a ClassReader may not be cleared and reused.");
+    }
     majorVersion = 0;
     className = null;
     entryCount = 0;
