@@ -28,7 +28,6 @@
 package org.objectweb.asm.tree;
 
 import java.util.Map;
-
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
@@ -43,6 +42,8 @@ public class MethodInsnNode extends AbstractInsnNode {
   /**
    * The internal name of the method's owner class (see {@link
    * org.objectweb.asm.Type#getInternalName()}).
+   *
+   * <p>For methods of arrays, e.g., <tt>clone()</tt>, the array type descriptor.
    */
   public String owner;
 

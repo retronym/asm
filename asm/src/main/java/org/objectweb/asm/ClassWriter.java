@@ -27,6 +27,8 @@
 // THE POSSIBILITY OF SUCH DAMAGE.
 package org.objectweb.asm;
 
+import java.nio.ByteBuffer;
+
 /**
  * A {@link ClassVisitor} that generates a corresponding ClassFile structure, as defined in the Java
  * Virtual Machine Specification (JVMS). It can be used alone, to generate a Java class "from
@@ -64,6 +66,8 @@ public class ClassWriter extends ClassVisitor {
    * @see #ClassWriter(int)
    */
   public static final int COMPUTE_FRAMES = 2;
+
+  private static final int INITIAL_REUSABLE_BUFFER_SIZE = 1024;
 
   // Note: fields are ordered as in the ClassFile structure, and those related to attributes are
   // ordered as in Section 4.7 of the JVMS.
@@ -176,6 +180,12 @@ public class ClassWriter extends ClassVisitor {
 
   /** The 'classes' array of the NestMembers attribute, or <tt>null</tt>. */
   private ByteVector nestMemberClasses;
+
+  /** A buffer used for the first file of class file writing */
+  private ByteVector classWriterBuffer1;
+
+  /** A buffer used for the second phase of class file writing */
+  private ByteVector classWriterBuffer2;
 
   /**
    * The first non standard attribute of this class. The next ones can be accessed with the {@link
@@ -432,12 +442,44 @@ public class ClassWriter extends ClassVisitor {
   // Other public methods
   // -----------------------------------------------------------------------------------------------
 
+  protected void useClassWriterBuffer(int initialSize) {
+    classWriterBuffer1 = new ByteVector(initialSize);
+    classWriterBuffer2 = new ByteVector(initialSize);
+  }
+
   /**
    * Returns the content of the class file that was built by this ClassWriter.
    *
    * @return the binary content of the JVMS ClassFile structure that was built by this ClassWriter.
    */
   public byte[] toByteArray() {
+    ByteVector result = toByteVector(classWriterBuffer1);
+    if (result.data.length == result.length) {
+      return result.data;
+    } else {
+      byte[] copy = new byte[result.length];
+      System.arraycopy(result.data, 0, copy, 0, result.length);
+      return copy;
+    }
+  }
+
+  /**
+   * Returns the content of the class file that was built by this ClassWriter.
+   *
+   * @return the binary content of the JVMS ClassFile structure that was built by this ClassWriter.
+   */
+  public ByteBuffer toByteVector() {
+    return toByteVector(classWriterBuffer1).toByteBuffer();
+  }
+
+  /**
+   * Returns the content of the class file that was built by this ClassWriter.
+   *
+   * @param buffer a pre-allocated buffer for internal use within this method.
+   * @return a <tt>ByteVector</tt> containing the binary content of the JVMS ClassFile structure
+   *     that was built by this ClassWriter.
+   */
+  private ByteVector toByteVector(ByteVector buffer) {
     // First step: compute the size in bytes of the ClassFile structure.
     // The magic field uses 4 bytes, 10 mandatory fields (minor_version, major_version,
     // constant_pool_count, access_flags, this_class, super_class, interfaces_count, fields_count,
@@ -548,9 +590,16 @@ public class ClassWriter extends ClassVisitor {
       throw new ClassTooLargeException(symbolTable.getClassName(), constantPoolCount);
     }
 
-    // Second step: allocate a ByteVector of the correct size (in order to avoid any array copy in
+    // Second step: prepare a ByteVector of the correct size (in order to avoid any array copy in
     // dynamic resizes) and fill it with the ClassFile content.
-    ByteVector result = new ByteVector(size);
+    ByteVector result;
+    if (buffer == null) {
+      result = new ByteVector(size);
+    } else {
+      // Reuse the user-provided buffer
+      buffer.ensureCapacity(size);
+      result = buffer;
+    }
     result.putInt(0xCAFEBABE).putInt(version);
     symbolTable.putConstantPool(result);
     int mask = (version & 0xFFFF) < Opcodes.V1_5 ? Opcodes.ACC_SYNTHETIC : 0;
@@ -655,9 +704,9 @@ public class ClassWriter extends ClassVisitor {
 
     // Third step: replace the ASM specific instructions, if any.
     if (hasAsmInstructions) {
-      return replaceAsmInstructions(result.data, hasFrames);
+      return replaceAsmInstructions(result, hasFrames);
     } else {
-      return result.data;
+      return result;
     }
   }
 
@@ -671,7 +720,7 @@ public class ClassWriter extends ClassVisitor {
    * @return an equivalent of 'classFile', with the ASM specific instructions replaced with standard
    *     ones.
    */
-  private byte[] replaceAsmInstructions(final byte[] classFile, final boolean hasFrames) {
+  private ByteVector replaceAsmInstructions(final ByteVector classFile, final boolean hasFrames) {
     Attribute[] attributes = getAttributePrototypes();
     firstField = null;
     lastField = null;
@@ -686,13 +735,18 @@ public class ClassWriter extends ClassVisitor {
     numberOfNestMemberClasses = 0;
     nestMemberClasses = null;
     firstAttribute = null;
-    compute = hasFrames ? MethodWriter.COMPUTE_INSERTED_FRAMES : MethodWriter.COMPUTE_NOTHING;
-    new ClassReader(classFile, 0, /* checkClassVersion = */ false)
-        .accept(
-            this,
-            attributes,
-            (hasFrames ? ClassReader.EXPAND_FRAMES : 0) | ClassReader.EXPAND_ASM_INSNS);
-    return toByteArray();
+    int savedCompute = compute;
+    try {
+      compute = hasFrames ? MethodWriter.COMPUTE_INSERTED_FRAMES : MethodWriter.COMPUTE_NOTHING;
+      new ClassReader(classFile.data, 0, /* checkClassVersion = */ false)
+          .accept(
+              this,
+              attributes,
+              (hasFrames ? ClassReader.EXPAND_FRAMES : 0) | ClassReader.EXPAND_ASM_INSNS);
+      return toByteVector(classWriterBuffer2);
+    } finally {
+      compute = savedCompute;
+    }
   }
 
   /**
@@ -922,6 +976,52 @@ public class ClassWriter extends ClassVisitor {
    */
   public int newNameType(final String name, final String descriptor) {
     return symbolTable.addConstantNameAndType(name, descriptor);
+  }
+
+  /** Clear this <tt>ClassWriter</tt> in preparation to visit and write a new class. */
+  public void clear() {
+    symbolTable.clear();
+    version = 0;
+    accessFlags = 0;
+    thisClass = 0;
+    superClass = 0;
+    interfaceCount = 0;
+    interfaces = null;
+    firstField = null;
+    lastField = null;
+    firstMethod = null;
+    lastMethod = null;
+    numberOfInnerClasses = 0;
+    clear(innerClasses);
+    enclosingClassIndex = 0;
+    enclosingMethodIndex = 0;
+    signatureIndex = 0;
+    sourceFileIndex = 0;
+    clear(debugExtension);
+    lastRuntimeVisibleAnnotation = null;
+    lastRuntimeInvisibleAnnotation = null;
+    lastRuntimeVisibleTypeAnnotation = null;
+    lastRuntimeInvisibleTypeAnnotation = null;
+    moduleWriter = null;
+    nestHostClassIndex = 0;
+    numberOfNestMemberClasses = 0;
+    clear(nestMemberClasses);
+    firstAttribute = null;
+    // Create reusable buffers that will be used by all future calls to toByteVector.
+    if (classWriterBuffer1 == null) {
+      classWriterBuffer1 = new ByteVector(INITIAL_REUSABLE_BUFFER_SIZE);
+    } else {
+      classWriterBuffer1.clear();
+    }
+    if (classWriterBuffer2 == null) {
+      classWriterBuffer2 = new ByteVector(INITIAL_REUSABLE_BUFFER_SIZE);
+    } else {
+      classWriterBuffer2.clear();
+    }
+  }
+
+  private void clear(ByteVector buf) {
+    if (buf != null) buf.clear();
   }
 
   // -----------------------------------------------------------------------------------------------

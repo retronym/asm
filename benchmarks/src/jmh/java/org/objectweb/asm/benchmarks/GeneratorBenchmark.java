@@ -28,7 +28,6 @@
 package org.objectweb.asm.benchmarks;
 
 import java.util.concurrent.TimeUnit;
-
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Fork;
 import org.openjdk.jmh.annotations.Measurement;
@@ -112,6 +111,12 @@ public class GeneratorBenchmark extends AbstractBenchmark {
 
   @Benchmark
   public byte[] asm6_1() {
+    return asm6_1.generateClass();
+  }
+
+  @Benchmark
+  public byte[] asm6_1_reuse() {
+    asm6_1.enableClassWriterReuse();
     return asm6_1.generateClass();
   }
 
