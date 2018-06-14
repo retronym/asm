@@ -27,8 +27,6 @@
 // THE POSSIBILITY OF SUCH DAMAGE.
 package org.objectweb.asm;
 
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
 import java.nio.ByteBuffer;
 
 /**
@@ -355,21 +353,12 @@ public class ByteVector {
   }
 
   /**
-   * Creates an {@link java.io.InputStream} over the contents of this <code>ByteVector</code>
-   *
-   * @return An <tt>InputStream</tt> over the contents.
-   */
-  public InputStream newInputStream() {
-    return new ByteArrayInputStream(data, 0, length);
-  }
-
-  /**
    * Creates a read-only {@link java.nio.ByteBuffer} over the contents of this <code>ByteVector
    * </code>
    *
    * @return A <tt>ByteBuffer</tt> over the contents.
    */
-  public ByteBuffer toByteBuffer() {
+  ByteBuffer toByteBuffer() {
     return ByteBuffer.wrap(data, 0, length).asReadOnlyBuffer();
   }
 
@@ -378,9 +367,10 @@ public class ByteVector {
    *
    * @param capacity The minimum capacity of the internal buffer after this operation.
    */
-  public void ensureCapacity(int capacity) {
+  void ensureCapacity(int capacity) {
     if (data.length < capacity) enlarge(capacity - data.length);
   }
+
   /**
    * Enlarges this byte vector so that it can receive 'size' more bytes.
    *

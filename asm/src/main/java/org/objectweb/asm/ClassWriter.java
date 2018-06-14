@@ -27,6 +27,8 @@
 // THE POSSIBILITY OF SUCH DAMAGE.
 package org.objectweb.asm;
 
+import java.nio.ByteBuffer;
+
 /**
  * A {@link ClassVisitor} that generates a corresponding ClassFile structure, as defined in the Java
  * Virtual Machine Specification (JVMS). It can be used alone, to generate a Java class "from
@@ -449,7 +451,7 @@ public class ClassWriter extends ClassVisitor {
    * @return the binary content of the JVMS ClassFile structure that was built by this ClassWriter.
    */
   public byte[] toByteArray() {
-    ByteVector result = toByteVector();
+    ByteVector result = toByteVector(classWriterBuffer1);
     if (result.data.length == result.length) {
       return result.data;
     } else {
@@ -464,8 +466,8 @@ public class ClassWriter extends ClassVisitor {
    *
    * @return the binary content of the JVMS ClassFile structure that was built by this ClassWriter.
    */
-  public ByteVector toByteVector() {
-    return toByteVector(classWriterBuffer1);
+  public ByteBuffer toByteVector() {
+    return toByteVector(classWriterBuffer1).toByteBuffer();
   }
 
   /**

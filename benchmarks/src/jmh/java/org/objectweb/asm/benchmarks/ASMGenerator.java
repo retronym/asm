@@ -27,7 +27,7 @@
 // THE POSSIBILITY OF SUCH DAMAGE.
 package org.objectweb.asm.benchmarks;
 
-import org.objectweb.asm.ByteVector;
+import java.nio.ByteBuffer;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -98,8 +98,8 @@ public class ASMGenerator extends Generator {
       // TODO generalize `generateClass` to return a `ByteVector`. That would require updates to the
       // facades over other bytecode libraries.
       // For now, we just cheat be by calling `toByteVector` and returning a null array.
-      ByteVector byteVector = classWriter.toByteVector();
-      if (byteVector.toByteBuffer().remaining() == 0) {
+      ByteBuffer byteBuffer = classWriter.toByteVector();
+      if (byteBuffer.remaining() == 0) {
         throw new AssertionError();
       }
       return null;
