@@ -67,6 +67,8 @@ public class ClassWriter extends ClassVisitor {
    */
   public static final int COMPUTE_FRAMES = 2;
 
+  private static final int INITIAL_REUSABLE_BUFFER_SIZE = 1024;
+
   // Note: fields are ordered as in the ClassFile structure, and those related to attributes are
   // ordered as in Section 4.7 of the JVMS.
 
@@ -594,7 +596,6 @@ public class ClassWriter extends ClassVisitor {
       result = new ByteVector(size);
     } else {
       // Reuse the user-provided buffer
-      buffer.clear();
       buffer.ensureCapacity(size);
       result = buffer;
     }
@@ -1005,6 +1006,17 @@ public class ClassWriter extends ClassVisitor {
     numberOfNestMemberClasses = 0;
     clear(nestMemberClasses);
     firstAttribute = null;
+    // Create reusable buffers that will be used by all future calls to toByteVector.
+    if (classWriterBuffer1 == null) {
+      classWriterBuffer1 = new ByteVector(INITIAL_REUSABLE_BUFFER_SIZE);
+    } else {
+      classWriterBuffer1.clear();
+    }
+    if (classWriterBuffer2 == null) {
+      classWriterBuffer2 = new ByteVector(INITIAL_REUSABLE_BUFFER_SIZE);
+    } else {
+      classWriterBuffer2.clear();
+    }
   }
 
   private void clear(ByteVector buf) {

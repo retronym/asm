@@ -494,9 +494,8 @@ public class ClassWriterTest extends AsmTest {
   }
 
   /**
-   * Tests that reusing a <tt>ClassWriter</tt> by using {@link ClassWriter#clear()}, and/or {@link
-   * ClassWriter#useClassWriterBuffer(int)} result in identical results as a freshly created
-   * <tt>ClassWriter</tt>.
+   * Tests that reusing a <tt>ClassWriter</tt> by using {@link ClassWriter#clear()}, result in
+   * identical results as a freshly created <tt>ClassWriter</tt>.
    *
    * <p>Like {@link #testReadAndWriteWithResizeMethod}, inserts NOPs to require <tt>ClassWriter</tt>
    * to perform the second pass transform in {@link ClassWriter#replaceAsmInstructions(ByteVector,
@@ -508,14 +507,8 @@ public class ClassWriterTest extends AsmTest {
     byte[] classFile = classParameter.getBytes();
     if (classFile.length > Short.MAX_VALUE) return;
 
-    testClasswriterReuseImpl(classParameter, apiParameter, classFile, -1);
-    testClasswriterReuseImpl(classParameter, apiParameter, classFile, 4096);
-  }
-
-  private void testClasswriterReuseImpl(
-      PrecompiledClass classParameter, Api apiParameter, byte[] classFile, int reusableBufferSize) {
     ClassReader classReader = new ClassReader(classFile);
-    ClassWriter classWriter = new ClassWriterBufferReuse(reusableBufferSize);
+    ClassWriter classWriter = new ClassWriter(0);
 
     // Insert ASM instructions to exercise `ClassWriter.replaceAsmInstructions`
     ForwardJumpNopInserter forwardJumpNopInserter =
@@ -529,25 +522,27 @@ public class ClassWriterTest extends AsmTest {
     }
     classReader.accept(forwardJumpNopInserter, attributes(), 0);
     ClassWriter referenceClassWriter = new ClassWriter(0);
-    classWriter = new ClassWriterBufferReuse(reusableBufferSize);
+    classWriter = new ClassWriter(0);
     if (!forwardJumpNopInserter.transformed) {
       classReader.accept(
           new WideForwardJumpInserter(apiParameter.value(), referenceClassWriter), attributes(), 0);
       classReader.accept(
           new WideForwardJumpInserter(apiParameter.value(), classWriter), attributes(), 0);
-      assertThatClass(referenceClassWriter.toByteArray()).isEqualTo(classWriter.toByteArray());
+      byte[] referenceClassBytes = referenceClassWriter.toByteArray();
+      assertThatClass(referenceClassBytes).isEqualTo(classWriter.toByteArray());
       classWriter.clear();
       classReader.accept(
           new WideForwardJumpInserter(apiParameter.value(), classWriter), attributes(), 0);
-      assertThatClass(referenceClassWriter.toByteArray()).isEqualTo(classWriter.toByteArray());
+      assertThatClass(referenceClassBytes).isEqualTo(classWriter.toByteArray());
     } else {
       classReader.accept(classWriter, attributes(), 0);
       classReader.accept(referenceClassWriter, attributes(), 0);
-      assertThatClass(referenceClassWriter.toByteArray()).isEqualTo(classWriter.toByteArray());
+      byte[] referenceClassBytes = referenceClassWriter.toByteArray();
+      assertThatClass(referenceClassBytes).isEqualTo(classWriter.toByteArray());
       classWriter.clear();
       classReader.accept(classWriter, attributes(), 0);
       byte[] transformedClassAgain = classWriter.toByteArray();
-      assertThatClass(referenceClassWriter.toByteArray()).isEqualTo(transformedClassAgain);
+      assertThatClass(referenceClassBytes).isEqualTo(transformedClassAgain);
     }
   }
 

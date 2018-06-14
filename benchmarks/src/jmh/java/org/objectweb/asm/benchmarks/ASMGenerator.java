@@ -109,12 +109,7 @@ public class ASMGenerator extends Generator {
   @Override
   public void enableClassWriterReuse() {
     if (classWriter == null) {
-      classWriter =
-          new ClassWriter(ClassWriter.COMPUTE_MAXS) {
-            {
-              useClassWriterBuffer(512);
-            }
-          };
+      classWriter = new ClassWriter(ClassWriter.COMPUTE_MAXS);
     }
   }
 }
